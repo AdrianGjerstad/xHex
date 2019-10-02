@@ -84,6 +84,52 @@ def crawl_args(argc, args):
   return 0
 
 ########################################
+# SCREEN MANIPULATION                  #
+########################################
+
+def draw_bytes(b, yoff):
+  global stdscr
+
+  height, width = stdscr.getmaxyx()
+
+  if yoff < 0: yoff = 0
+
+  tx = len(hex(len(b))[2:])+2
+
+  for i in range(16):
+    stdscr.addstr(0, (i%16)*3+tx, hex(i)[2:].upper(), curses.color_pair(3) | curses.A_BOLD)
+    stdscr.addstr(0, tx+(16*3)+1+(i%16), hex(i)[2:].upper(), curses.color_pair(3) | curses.A_BOLD)
+
+  for i in range(height-2):
+    stdscr.addstr(i+1, 0, '0'*(tx-len(hex((i+yoff)*16)[2:])-2) + hex((i+yoff)*16)[2:].upper() + ':', (curses.color_pair(3) if (i+yoff) <= int(len(b)/16) else curses.color_pair(1)) | curses.A_BOLD)
+
+  for i in range(height*16 - 32):
+    if i+(yoff*16) >= len(b):
+      stdscr.addstr(int(i/16)+1, (i%16)*3+tx, '00', curses.color_pair(1) | curses.A_BOLD)
+      stdscr.addstr(int(i/16)+1, tx+(16*3)+1+(i%16), '.', curses.color_pair(1) | curses.A_BOLD)
+      continue
+    if int(b[i+(yoff*16)]) <= 32:
+      stdscr.addstr(int(i/16)+1, tx+(16*3)+1+(i%16), '.')
+    else:
+      stdscr.addstr(int(i/16)+1, tx+(16*3)+1+(i%16), chr(b[i+(yoff*16)]))
+    if len(hex(ord(chr(b[i+(yoff*16)])))[2:]) == 1:
+      stdscr.addstr(int(i/16)+1, (i%16)*3+tx, '0' + hex(ord(chr(b[i+(yoff*16)])))[2:].upper())
+      continue
+    stdscr.addstr(int(i/16)+1, (i%16)*3+tx, hex(ord(chr(b[i+(yoff*16)])))[2:].upper())
+
+  curses.setsyx(1, 5)
+
+  stdscr.refresh()
+
+def overwrite_cmd(txt):
+  global stdscr
+
+  height, width = stdscr.getmaxyx()
+
+  stdscr.addstr(height-1, 0, txt)
+  stdscr.refresh()
+
+########################################
 # MAIN                                 #
 ########################################
 
@@ -101,6 +147,12 @@ def main(argc, argv):
   curses.cbreak()     # Send keypress event without pressing enter
   stdscr.keypad(True) # Enable directional arrows
 
+  # Start colors
+  curses.start_color()
+  curses.use_default_colors()
+  for i in range(0, curses.COLORS):
+    curses.init_pair(i + 1, i, -1)
+
   # Clear screen
   stdscr.clear()
   stdscr.refresh()
@@ -108,9 +160,13 @@ def main(argc, argv):
   prev_key = None
 
   for file in ARG_DATA['files']:
+    bytes_ = open(file, 'rb').read()
+    draw_bytes(bytes_, 0)
+    overwrite_cmd('testing')
     while True:
 
       stdscr.refresh()
+
       prev_key = stdscr.getkey()
 
   if len(ARG_DATA['files']) == 0:
