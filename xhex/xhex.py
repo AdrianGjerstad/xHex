@@ -117,8 +117,6 @@ def draw_bytes(b, yoff):
       continue
     stdscr.addstr(int(i/16)+1, (i%16)*3+tx, hex(ord(chr(b[i+(yoff*16)])))[2:].upper())
 
-  curses.setsyx(1, 5)
-
   stdscr.refresh()
 
 def overwrite_cmd(txt):
@@ -162,12 +160,23 @@ def main(argc, argv):
   for file in ARG_DATA['files']:
     bytes_ = open(file, 'rb').read()
     draw_bytes(bytes_, 0)
-    overwrite_cmd('testing')
+    tx = len(hex(len(bytes_))[2:])+2
+    stdscr.move(1, tx)
+    stdscr.refresh()
     while True:
+      key = stdscr.getkey()
+
+      y, x = stdscr.getyx()
+      if key == curses.KEY_LEFT:
+        stdscr.move(y, x-1)
+      elif key == curses.KEY_RIGHT:
+        stdscr.move(y, x+1)
+      elif key == curses.KEY_UP:
+        stdscr.move(y-1, x)
+      elif key == curses.KEY_DOWN:
+        stdscr.move(y+1, x)
 
       stdscr.refresh()
-
-      prev_key = stdscr.getkey()
 
   if len(ARG_DATA['files']) == 0:
     pass
